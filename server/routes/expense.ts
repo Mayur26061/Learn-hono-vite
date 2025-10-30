@@ -1,0 +1,61 @@
+import { Hono } from 'hono';
+import { z } from 'zod';
+import { zValidator } from '@hono/zod-validator'
+
+const expenseSchema = z.object({
+    id: z.number().int().positive().min(1),
+    amount: z.number().int().positive(),
+    title: z.string().min(3).max(100),
+});
+const createExpenseSchema = expenseSchema.omit({ id: true });
+
+type Expense = z.infer<typeof expenseSchema>;
+
+const fakeExpenses: Expense[] = [
+    { id: 1, amount: 50, title: "Groceries" },
+    { id: 2, amount: 20, title: "Transport" },
+    { id: 3, amount: 100, title: "Utilities" },
+];
+
+const expenseRoute = new Hono()
+    .get("/", c => {
+        return c.json({ expenses: fakeExpenses })
+    })
+    .post("/", zValidator("json", createExpenseSchema, async (result, c) => {
+        if (!result.success) {
+            return c.text('Invalid!', 400)
+        }
+    }), async (c) => {
+        const body = c.req.valid("json");
+        console.log(body);
+        fakeExpenses.push({
+            id: fakeExpenses.length + 1,
+            title: body.title,
+            amount: body.amount,
+        });
+        c.status(201);
+        return c.json(fakeExpenses)
+    })
+    .get("/:id{[0-9]+}", c => {
+        const id = Number(c.req.param("id"));
+        const expense = fakeExpenses.find(e => e.id === id);
+        if (!expense) {
+            return c.notFound()
+        }
+        return c.json({ expense })
+    })
+    .get("/total", c=> {
+        const total = fakeExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+        return c.json({ total })
+    })
+    .delete("/:id{[0-9]+}", c => {
+        const id = Number(c.req.param("id"));
+        const expenseInd = fakeExpenses.findIndex(e => e.id === id);
+        if (expenseInd < 0) {
+            return c.notFound()
+        }
+        fakeExpenses.splice(expenseInd, 1);
+        return c.json({ message: "Deleted successfully" })
+    })
+
+export default expenseRoute;
