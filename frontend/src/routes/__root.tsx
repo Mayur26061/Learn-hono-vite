@@ -51,7 +51,7 @@ function Navbar() {
             className: 'font-bold',
           }}
         >
-          Create Expenses
+          Create
         </Link>
       </div>
     </>

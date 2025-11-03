@@ -17,7 +17,7 @@ export const Route = createFileRoute('/expenses')({
 })
 
 const fetctAllExpense = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // Simulate network delay
+    // await new Promise((resolve) => setTimeout(resolve, 5000)); // Simulate network delay
   const res = await api.expense.$get()
   if (!res.ok) {
     throw new Error('Network response was not ok');
@@ -30,7 +30,8 @@ const fetctAllExpense = async () => {
 function Expenses() {
    const { isPending, error, data } = useQuery({
     queryKey: ['get-all-expenses'],
-    queryFn: fetctAllExpense
+    queryFn: fetctAllExpense,
+    refetchOnWindowFocus: false,
   })
 
   if (error) return 'An error has occurred: ' + error.message
