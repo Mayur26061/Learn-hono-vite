@@ -17,6 +17,9 @@ const router = createRouter({
   defaultPreload: 'intent',
   defaultStaleTime: 5000,
   scrollRestoration: true,
+  context : {
+    queryClient
+  }
 })
 
 // Register things for typesafety

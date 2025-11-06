@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator'
+import { userMiddleWare } from '../kinde';
 
 const expenseSchema = z.object({
     id: z.number().int().positive().min(1),
@@ -18,10 +19,10 @@ const fakeExpenses: Expense[] = [
 ];
 
 const expenseRoute = new Hono()
-    .get("/", c => {
+    .get("/", userMiddleWare, c => {
         return c.json({ expenses: fakeExpenses })
     })
-    .post("/", zValidator("json", createExpenseSchema, async (result, c) => {
+    .post("/",  userMiddleWare, zValidator("json", createExpenseSchema, async (result, c) => {
         if (!result.success) {
             return c.text('Invalid!', 400)
         }
@@ -36,7 +37,7 @@ const expenseRoute = new Hono()
         c.status(201);
         return c.json(fakeExpenses)
     })
-    .get("/:id{[0-9]+}", c => {
+    .get("/:id{[0-9]+}", userMiddleWare, c => {
         const id = Number(c.req.param("id"));
         const expense = fakeExpenses.find(e => e.id === id);
         if (!expense) {
@@ -44,11 +45,11 @@ const expenseRoute = new Hono()
         }
         return c.json({ expense })
     })
-    .get("/total", c=> {
+    .get("/total", userMiddleWare, c=> {
         const total = fakeExpenses.reduce((acc, expense) => acc + expense.amount, 0);
         return c.json({ total })
     })
-    .delete("/:id{[0-9]+}", c => {
+    .delete("/:id{[0-9]+}", userMiddleWare, c => {
         const id = Number(c.req.param("id"));
         const expenseInd = fakeExpenses.findIndex(e => e.id === id);
         if (expenseInd < 0) {

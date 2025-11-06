@@ -1,8 +1,12 @@
-import * as React from 'react'
-import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
-// import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import type { QueryClient } from '@tanstack/react-query'
 
-export const Route = createRootRoute({
+// add type for queryClient context (originally from main.tsx)
+interface MyRouterContext {
+  queryClient: QueryClient
+}
+
+export const Route = createRootRouteWithContext<MyRouterContext>()({
   component: RootComponent,
 })
 
@@ -11,7 +15,9 @@ function RootComponent() {
     <>
         <Navbar />
               <hr />
+              <div className='max-w-2xl m-auto'>
       <Outlet />
+              </div>
       {/* <TanStackRouterDevtools position="bottom-right" /> */}
     </>
   )
@@ -19,7 +25,7 @@ function RootComponent() {
 
 function Navbar() {
     return   <>
-      <div className="p-2 flex gap-2 text-lg">
+      <div className="p-2 flex gap-2 text-lg max-w-2xl m-auto">
         <Link
           to="/"
           activeProps={{
@@ -52,6 +58,14 @@ function Navbar() {
           }}
         >
           Create
+        </Link>
+                <Link
+          to="/profile"
+          activeProps={{
+            className: 'font-bold',
+          }}
+        >
+          Profile
         </Link>
       </div>
     </>
