@@ -4,7 +4,8 @@ import { zValidator } from '@hono/zod-validator'
 import { userMiddleWare } from '../kinde';
 import { db } from '../db/index';
 import { expenses as expensesTable } from '../db/schema/expenses';
-import { eq } from 'drizzle-orm';
+import { eq, desc, and, sum } from 'drizzle-orm';
+
 
 const expenseSchema = z.object({
     id: z.number().int().positive().min(1),
@@ -23,10 +24,13 @@ const fakeExpenses: Expense[] = [
 
 const expenseRoute = new Hono()
     .get("/", userMiddleWare, async (c) => {
-        const expneses = await db.select().from(expensesTable).where(eq(expensesTable.userId, c.var.user.id));
+        const expneses = await db.select()
+            .from(expensesTable)
+            .where(eq(expensesTable.userId, c.var.user.id))
+            .orderBy(desc(expensesTable.createAt)).limit(100);
         return c.json({ expenses: expneses })
     })
-    .post("/",  userMiddleWare, zValidator("json", createExpenseSchema, async (result, c) => {
+    .post("/", userMiddleWare, zValidator("json", createExpenseSchema, async (result, c) => {
         if (!result.success) {
             return c.text('Invalid!', 400)
         }
@@ -41,26 +45,39 @@ const expenseRoute = new Hono()
         c.status(201);
         return c.json(result)
     })
-    .get("/:id{[0-9]+}", userMiddleWare, c => {
+    .get("/:id{[0-9]+}", userMiddleWare, async (c) => {
         const id = Number(c.req.param("id"));
-        const expense = fakeExpenses.find(e => e.id === id);
+        const expense = await db.select().from(expensesTable).where(
+            and(
+                eq(expensesTable.id, id),
+                eq(expensesTable.userId, c.var.user.id)
+            )
+        ).limit(1).then(res => res[0]);
         if (!expense) {
             return c.notFound()
         }
-        return c.json({ expense })
+        return c.json(expense)
     })
-    .get("/total", userMiddleWare, c=> {
-        const total = fakeExpenses.reduce((acc, expense) => acc + +expense.amount, 0);
-        return c.json({ total })
+    .get("/total", userMiddleWare, async (c) => {
+        const total = await db.select({ total: sum(expensesTable.amount) }).from(expensesTable).where(
+            eq(expensesTable.userId, c.var.user.id)
+        ).limit(1).then(res => res[0]);
+        // const total = fakeExpenses.reduce((acc, expense) => acc + +expense.amount, 0);
+        return c.json(total)
     })
-    .delete("/:id{[0-9]+}", userMiddleWare, c => {
+    .delete("/:id{[0-9]+}", userMiddleWare, async (c) => {
         const id = Number(c.req.param("id"));
-        const expenseInd = fakeExpenses.findIndex(e => e.id === id);
-        if (expenseInd < 0) {
+        const expense = await db.delete(expensesTable).where(
+            and(
+                eq(expensesTable.id, id),
+                eq(expensesTable.userId, c.var.user.id)
+            ))
+            .returning()
+            .then(res => res[0]);
+        if (!expense) {
             return c.notFound()
         }
-        fakeExpenses.splice(expenseInd, 1);
-        return c.json({ message: "Deleted successfully" })
+        return c.json({ message: `Deleted ${expense.title} successfully` })
     })
 
 export default expenseRoute;

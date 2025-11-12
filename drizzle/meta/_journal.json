@@ -8,6 +8,13 @@
       "when": 1762882588329,
       "tag": "0000_silky_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762965848990,
+      "tag": "0001_parallel_lifeguard",
+      "breakpoints": true
     }
   ]
 }
