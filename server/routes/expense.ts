@@ -7,14 +7,7 @@ import { expenses as expensesTable } from '../db/schema/expenses';
 import { eq, desc, and, sum } from 'drizzle-orm';
 
 
-const expenseSchema = z.object({
-    id: z.number().int().positive().min(1),
-    amount: z.string(),
-    title: z.string().min(3).max(100),
-});
-const createExpenseSchema = expenseSchema.omit({ id: true });
-
-type Expense = z.infer<typeof expenseSchema>;
+import { createExpenseSchema, type Expense } from '../sharedTypes';
 
 const fakeExpenses: Expense[] = [
     { id: 1, amount: "50", title: "Groceries" },
