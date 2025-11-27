@@ -1,19 +1,13 @@
 import { Hono } from 'hono';
-import { z } from 'zod';
 import { zValidator } from '@hono/zod-validator'
 import { userMiddleWare } from '../kinde';
 import { db } from '../db/index';
-import { expenses as expensesTable } from '../db/schema/expenses';
+import { expenses as expensesTable, insertExpenseSchema } from '../db/schema/expenses';
 import { eq, desc, and, sum } from 'drizzle-orm';
 
 
-import { createExpenseSchema, type Expense } from '../sharedTypes';
+import { expenseSchema } from '../sharedTypes';
 
-const fakeExpenses: Expense[] = [
-    { id: 1, amount: "50", title: "Groceries" },
-    { id: 2, amount: "20", title: "Transport" },
-    { id: 3, amount: "100", title: "Utilities" },
-];
 
 const expenseRoute = new Hono()
     .get("/", userMiddleWare, async (c) => {
@@ -23,16 +17,20 @@ const expenseRoute = new Hono()
             .orderBy(desc(expensesTable.createAt)).limit(100);
         return c.json({ expenses: expneses })
     })
-    .post("/", userMiddleWare, zValidator("json", createExpenseSchema, async (result, c) => {
+    .post("/", userMiddleWare, zValidator("json", expenseSchema, async (result, c) => {
         if (!result.success) {
             return c.text('Invalid!', 400)
         }
     }), async (c) => {
         const body = c.req.valid("json");
+        insertExpenseSchema.parse({
+            ...body,
+            userId: c.var.user.id,
+        }); // extra validation
         const result = await db.insert(expensesTable).values({
             ...body,
             userId: c.var.user.id,
-        }).returning();
+        }).returning().then(res => res[0]);
         console.log(body);
 
         c.status(201);
